@@ -1,0 +1,60 @@
+# General
+*.log
+*.bak
+*.DS_Store
+*.swp
+*.out
+*.class
+*.tmp
+*.html
+*~.nib
+**/tmp/
+.cache/
+
+# Eclipse
+.project
+.classpath
+.metadata
+.settings/
+.externalToolBuilders/
+.recommenders/
+RemoteSystemsTempFiles/
+Servers/
+build/
+bin/*
+*.launch
+*~.nib
+
+# Golang
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+vendor/
+pkg/
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+*.test
+*.prof
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project
+
