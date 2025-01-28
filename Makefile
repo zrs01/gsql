@@ -11,7 +11,7 @@ VERSION=$(shell git describe --tags --always --long --dirty)
 BUILDFLAGS=-v -trimpath -ldflags="-s -w -X main.version=$(VERSION)"
 
 default:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(BUILDFLAGS) -o bin/$(BINARY)
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build -v -ldflags="-X main.version=$(VERSION)" -o bin/$(EXECUTABLE)
 
 windows: $(WINDOWS) ## Build for Windows
 

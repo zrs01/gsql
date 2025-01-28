@@ -56,7 +56,7 @@ func main() {
 	}
 
 	if err := cliapp.Run(os.Args); err != nil {
-		tracerr.Print(err)
+		tracerr.PrintSourceColor(err, 0)
 	}
 }
 
