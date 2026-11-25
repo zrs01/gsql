@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ func main() {
 			return fmt.Errorf("file '%s' does not exist", file)
 		}
 		// get the cli args
-		if _, err := doLuaFile(file, ctx.Args(), nil); err != nil {
+		if err := doLuaFile(file, ctx.Args()); err != nil {
 			return tracerr.Wrap(err)
 		}
 		return nil
@@ -60,7 +59,7 @@ func main() {
 	}
 }
 
-func doLuaFile(file string, args cli.Args, action func(*lua.LState) (interface{}, error)) (interface{}, error) {
+func doLuaFile(file string, args cli.Args) error {
 	L := lua.NewState()
 	defer L.Close()
 	L.PreloadModule("regex", gluare.Loader)
@@ -74,21 +73,13 @@ func doLuaFile(file string, args cli.Args, action func(*lua.LState) (interface{}
 	L.SetGlobal("args", luar.New(L, argArrays))
 
 	// add the path of given file to the lua package, make all lua files in the path can be found and run
-	packagePath := filepath.Join(filepath.Dir(file), "?.lua")
-	cmd := strings.Replace("package.path = package.path .. ';"+packagePath+"'", "\\", "/", -1)
-	if err := L.DoString(cmd); err != nil {
-		return nil, tracerr.Wrap(err)
+	packagePath := filepath.ToSlash(filepath.Join(filepath.Dir(file), "?.lua"))
+	setPackagePath := fmt.Sprintf("package.path = package.path .. '%s'", packagePath)
+	if err := L.DoString(setPackagePath); err != nil {
+		return tracerr.Wrap(err)
 	}
 	if err := L.DoFile(file); err != nil {
-		return nil, tracerr.Wrap(err)
+		return tracerr.Wrap(err)
 	}
-	if action != nil {
-		// execute the action given from caller
-		res, err := action(L)
-		if err != nil {
-			return nil, tracerr.Wrap(err)
-		}
-		return res, nil
-	}
-	return nil, nil
+	return nil
 }
