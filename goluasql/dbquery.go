@@ -62,6 +62,12 @@ func dbQueryMethod(L *lua.LState) int {
 		tb.Append(tbRow)
 	}
 
+	if err := rows.Err(); err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+
 	L.Push(tb)
 	return 1
 }
