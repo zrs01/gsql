@@ -10,11 +10,11 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-func GetValue(l *lua.LState, n int) interface{} {
+func GetValue(l *lua.LState, n int) any {
 	return GetArbitraryValue(l, l.Get(n))
 }
 
-func GetArbitraryValue(l *lua.LState, v lua.LValue) interface{} {
+func GetArbitraryValue(l *lua.LState, v lua.LValue) any {
 	switch t := v.Type(); t {
 	case lua.LTNil:
 		return nil
@@ -29,7 +29,7 @@ func GetArbitraryValue(l *lua.LState, v lua.LValue) interface{} {
 	case lua.LTString:
 		return lua.LVAsString(v)
 	case lua.LTTable:
-		m := map[string]interface{}{}
+		m := map[string]any{}
 		tb := v.(*lua.LTable)
 		arrSize := 0
 		tb.ForEach(func(k, val lua.LValue) {
@@ -46,7 +46,7 @@ func GetArbitraryValue(l *lua.LState, v lua.LValue) interface{} {
 		})
 
 		if arrSize >= 0 {
-			ms := make([]interface{}, arrSize)
+			ms := make([]any, arrSize)
 			for i := 0; i < arrSize; i++ {
 				ms[i] = m[strconv.Itoa(i+1)]
 			}
@@ -59,7 +59,7 @@ func GetArbitraryValue(l *lua.LState, v lua.LValue) interface{} {
 	}
 }
 
-func ToArbitraryValue(l *lua.LState, i interface{}) lua.LValue {
+func ToArbitraryValue(l *lua.LState, i any) lua.LValue {
 	if i == nil {
 		return lua.LNil
 	}
@@ -100,7 +100,7 @@ func ToArbitraryValue(l *lua.LState, i interface{}) lua.LValue {
 	default:
 		v := reflect.ValueOf(i)
 		switch v.Kind() {
-		case reflect.Ptr:
+		case reflect.Pointer:
 			return ToArbitraryValue(l, v.Elem().Interface())
 
 		case reflect.Struct:
