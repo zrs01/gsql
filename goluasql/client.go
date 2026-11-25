@@ -15,7 +15,6 @@ const (
 	CLIENT_TYPENAME = "sql{client}"
 )
 
-// Client mysql
 type Client struct {
 	DB      *sql.DB
 	Timeout time.Duration
@@ -78,18 +77,12 @@ func dbSetKeepaliveMethod(L *lua.LState) int {
 	return 1
 }
 
-// dbBeginTxMethod is a Go function that starts a new transaction for a client.
-//
-// It takes in a Lua state as a parameter.
-// It returns an integer indicating the number of values pushed to the Lua stack.
 func dbBeginTxMethod(L *lua.LState) int {
 	client := checkClient(L)
 	tx := &DBTx{}
 	clientTx, err := client.DB.BeginTx(context.Background(), nil)
 	if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		return pushErr(L, err)
 	}
 	tx.Tx = clientTx
 	ud := L.NewUserData()

@@ -46,7 +46,7 @@ func dbTxExecMethod(L *lua.LState) int {
 	}
 
 	top := L.GetTop()
-	args := make([]interface{}, 0, top-2)
+	args := make([]any, 0, top-2)
 	for i := 3; i <= top; i++ {
 		args = append(args, util.GetValue(L, i))
 	}
@@ -55,9 +55,7 @@ func dbTxExecMethod(L *lua.LState) int {
 	logrus.Debugf("query: %s", query)
 	result, err := tx.Tx.Exec(query, args...)
 	if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		return pushErr(L, err)
 	}
 	tx.Result = &result
 
@@ -101,7 +99,7 @@ func dbTxQueryMethod(L *lua.LState) int {
 	}
 
 	top := L.GetTop()
-	args := make([]interface{}, 0, top-2)
+	args := make([]any, 0, top-2)
 	for i := 3; i <= top; i++ {
 		args = append(args, util.GetValue(L, i))
 	}
@@ -111,18 +109,14 @@ func dbTxQueryMethod(L *lua.LState) int {
 	rows, err := tx.Tx.Query(query, args...)
 
 	if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		return pushErr(L, err)
 	}
 	defer rows.Close()
 
 	fb := fieldbinding.NewFieldBinding()
 	cols, err := rows.Columns()
 	if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		return pushErr(L, err)
 	}
 
 	fb.PutFields(cols)
@@ -130,9 +124,7 @@ func dbTxQueryMethod(L *lua.LState) int {
 	tb := L.NewTable()
 	for rows.Next() {
 		if err := rows.Scan(fb.GetFieldPtrArr()...); err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
+			return pushErr(L, err)
 		}
 
 		tbRow := util.ToTableFromMap(L, reflect.ValueOf(fb.GetFieldArr()))
@@ -140,9 +132,7 @@ func dbTxQueryMethod(L *lua.LState) int {
 	}
 
 	if err := rows.Err(); err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		return pushErr(L, err)
 	}
 
 	L.Push(tb)

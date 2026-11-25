@@ -1,6 +1,8 @@
 package goluasql
 
 import (
+	"strings"
+
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -16,26 +18,26 @@ func Loader(L *lua.LState) int {
 	L.SetField(mod, "_DEBUG", lua.LBool(false))
 	L.SetField(mod, "_VERSION", lua.LString("0.0.0"))
 
-	registerClientType(L)
-	registerTxType(L)
-	registerExecResultType(L)
+	registerType(L, CLIENT_TYPENAME, dbMethods)
+	registerType(L, TX_TYPENAME, dbTxMethods)
+	registerType(L, RESULT_TYPENAME, dbExecResultMethods)
 
 	return 1
 }
 
-func registerClientType(L *lua.LState) {
-	mt := L.NewTypeMetatable(CLIENT_TYPENAME)
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), dbMethods))
+// pushErr reports a Go error to the Lua caller as (nil, err) and returns the
+// number of values pushed, ready to return from a Lua C function.
+func pushErr(L *lua.LState, err error) int {
+	L.Push(lua.LNil)
+	L.Push(lua.LString(err.Error()))
+	return 2
 }
 
-func registerTxType(L *lua.LState) {
-	mt := L.NewTypeMetatable(TX_TYPENAME)
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), dbTxMethods))
-}
-
-func registerExecResultType(L *lua.LState) {
-	mt := L.NewTypeMetatable(RESULT_TYPENAME)
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), dbExecResultMethods))
+// registerType binds a userdata type's method table, so Lua methods such as
+// c:connect and tx:commit resolve through the metatable __index.
+func registerType(L *lua.LState, name string, methods map[string]lua.LGFunction) {
+	mt := L.NewTypeMetatable(name)
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), methods))
 }
 
 func newFn(L *lua.LState) int {
@@ -47,47 +49,19 @@ func newFn(L *lua.LState) int {
 	return 1
 }
 
+// escapeReplacer backslash-escapes the bytes sql.escape handles, so a Lua
+// string can be embedded in a DSN or statement without breaking quoting.
+var escapeReplacer = strings.NewReplacer(
+	"\r", `\r`,
+	"\n", `\n`,
+	`\`, `\\`,
+	"'", `\'`,
+	"\"", `\"`,
+	"\x1a", `\Z`,
+)
+
 func escape(source string) string {
-	var j int = 0
-	if len(source) == 0 {
-		return ""
-	}
-	tempStr := source[:]
-	desc := make([]byte, len(tempStr)*2)
-	for i := 0; i < len(tempStr); i++ {
-		flag := false
-		var escape byte
-		switch tempStr[i] {
-		case '\r':
-			flag = true
-			escape = 'r'
-		case '\n':
-			flag = true
-			escape = 'n'
-		case '\\':
-			flag = true
-			escape = '\\'
-		case '\'':
-			flag = true
-			escape = '\''
-		case '"':
-			flag = true
-			escape = '"'
-		case '\032':
-			flag = true
-			escape = 'Z'
-		default:
-		}
-		if flag {
-			desc[j] = '\\'
-			desc[j+1] = escape
-			j = j + 2
-		} else {
-			desc[j] = tempStr[i]
-			j = j + 1
-		}
-	}
-	return string(desc[0:j])
+	return escapeReplacer.Replace(source)
 }
 
 func escapeFn(L *lua.LState) int {
